@@ -15,6 +15,7 @@ except ImportError as e:
 from echo360.exceptions import EchoLoginError
 from echo360.downloader import EchoDownloader
 from echo360.course import EchoCourse
+from echo360.singlevidcourse import SingleVidEchoCourse
 
 _DEFAULT_BEFORE_DATE = datetime(2900, 1, 1).date()
 _DEFAULT_AFTER_DATE = datetime(1100, 1, 1).date()
@@ -115,6 +116,15 @@ def handle_args():
         dest="enable_degbug",
         help="Enable extensive logging.")
 
+    # enables hack to download single videos (this is useful for dealing with professors who refuse to
+    # give students the course URL but only the links to individual videos, for whatever reason)
+    parser.add_argument(
+       "--single_video",
+       action='store_true',
+       default=False,
+       dest="single_video",
+       help="URL is a single video, not an entire course")
+
     args = vars(parser.parse_args())
     course_url = args["url"]
 
@@ -156,13 +166,14 @@ def handle_args():
 
     return (course_uuid, course_hostname, output_path, after_date, before_date,
             username, password, args['setup_credential'], args['download_binary'],
-            args['use_chrome'], args['interactive'], args['enable_degbug'])
+            args['use_chrome'], args['interactive'], args['enable_degbug'],
+            args['single_video'])
 
 
 def main():
     (course_uuid, course_hostname, output_path, after_date, before_date,
      username, password, setup_credential, download_binary, use_chrome,
-     interactive_mode, enable_degbug) = handle_args()
+     interactive_mode, enable_degbug, single_video) = handle_args()
 
     setup_logging(enable_degbug)
 
@@ -203,7 +214,13 @@ def main():
         start_download_binary(binary_downloader, binary_type, manual=True)
         exit(0)
 
-    course = EchoCourse(course_uuid, course_hostname)
+    if single_video:
+        # if the single_video hack is selected, fabricate a fake course containing
+        # a single video using the video UUID
+        course = SingleVidEchoCourse(course_uuid, course_hostname)
+    else:
+        course = EchoCourse(course_uuid, course_hostname)
+
     downloader = EchoDownloader(
         course,
         output_path,

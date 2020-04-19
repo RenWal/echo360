@@ -98,6 +98,7 @@ class EchoCourse(object):
                 # print('ha')
                 # print(self.driver.page_source)
                 json_str = self.driver.find_element_by_tag_name("pre").text
+                print(json_str)
 
                 return json.loads(json_str)
             except ValueError as e:
